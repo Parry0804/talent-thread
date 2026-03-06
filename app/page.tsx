@@ -1,4 +1,56 @@
+"use client";
+import { useState } from "react";
+import { createClient } from "@supabase/supabase-js";
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
+
 export default function Home() {
+  const [email, setEmail] = useState("");
+  const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+  const [message, setMessage] = useState("");
+
+  async function handleWaitlist(e: React.FormEvent) {
+    e.preventDefault();
+    if (!email) return;
+    setStatus("loading");
+    const { error } = await supabase.from("waitlist").insert([{ email }]);
+    if (error) {
+      if (error.code === "23505") {
+        setMessage("You're already on the waitlist!");
+      } else {
+        setMessage("Something went wrong. Try again.");
+      }
+      setStatus("error");
+    } else {
+      setMessage("You're in! We'll be in touch soon. 🎉");
+      setStatus("success");
+      setEmail("");
+    }
+  }
+
+  const WaitlistForm = () => (
+    <form onSubmit={handleWaitlist} className="flex flex-col sm:flex-row gap-3 w-full max-w-md">
+      <input
+        type="email"
+        placeholder="Enter your email"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        className="flex-1 bg-white/5 border border-white/10 rounded-full px-5 py-3 text-sm text-white placeholder-white/30 outline-none focus:border-[#6C63FF] transition"
+        required
+      />
+      <button
+        type="submit"
+        disabled={status === "loading"}
+        className="bg-[#6C63FF] hover:bg-[#5a52e0] disabled:opacity-50 text-white text-sm font-semibold px-6 py-3 rounded-full transition"
+      >
+        {status === "loading" ? "Joining..." : "Get Early Access"}
+      </button>
+    </form>
+  );
+
   return (
     <main className="min-h-screen bg-[#0F0F1A] text-white font-sans">
 
@@ -29,18 +81,12 @@ export default function Home() {
         <p className="text-white/50 text-lg max-w-xl mb-10 leading-relaxed">
           Talent Thread connects top graphic and UI/UX designers with companies — powered by AI portfolio analysis that shows exactly how good you really are.
         </p>
-
-        {/* WAITLIST FORM */}
-        <div className="flex flex-col sm:flex-row gap-3 w-full max-w-md">
-          <input
-            type="email"
-            placeholder="Enter your email"
-            className="flex-1 bg-white/5 border border-white/10 rounded-full px-5 py-3 text-sm text-white placeholder-white/30 outline-none focus:border-[#6C63FF] transition"
-          />
-          <button className="bg-[#6C63FF] hover:bg-[#5a52e0] text-white text-sm font-semibold px-6 py-3 rounded-full transition">
-            Get Early Access
-          </button>
-        </div>
+        <WaitlistForm />
+        {message && (
+          <p className={`mt-4 text-sm ${status === "success" ? "text-green-400" : "text-red-400"}`}>
+            {message}
+          </p>
+        )}
         <p className="text-white/30 text-xs mt-4">Free forever for designers. No credit card needed.</p>
       </section>
 
@@ -62,10 +108,7 @@ export default function Home() {
       <section className="py-20 px-8 max-w-5xl mx-auto">
         <h2 className="text-3xl font-bold text-center mb-4">How It Works</h2>
         <p className="text-white/40 text-center mb-14 text-sm">Two sides. One platform. Zero friction.</p>
-
         <div className="grid md:grid-cols-2 gap-8">
-
-          {/* Designer Side */}
           <div className="bg-white/5 border border-white/10 rounded-2xl p-8">
             <div className="text-[#6C63FF] font-bold text-xs uppercase tracking-widest mb-6">For Designers</div>
             {[
@@ -83,8 +126,6 @@ export default function Home() {
               </div>
             ))}
           </div>
-
-          {/* Company Side */}
           <div className="bg-white/5 border border-white/10 rounded-2xl p-8">
             <div className="text-[#FF6584] font-bold text-xs uppercase tracking-widest mb-6">For Companies</div>
             {[
@@ -132,16 +173,14 @@ export default function Home() {
         <div className="bg-[#6C63FF]/10 border border-[#6C63FF]/20 rounded-3xl max-w-2xl mx-auto py-16 px-8">
           <h2 className="text-3xl font-bold mb-4">Ready to Get Started?</h2>
           <p className="text-white/40 mb-8 text-sm">Join the waitlist. Be among the first designers and companies on Talent Thread.</p>
-          <div className="flex flex-col sm:flex-row gap-3 justify-center max-w-md mx-auto">
-            <input
-              type="email"
-              placeholder="Enter your email"
-              className="flex-1 bg-white/5 border border-white/10 rounded-full px-5 py-3 text-sm text-white placeholder-white/30 outline-none focus:border-[#6C63FF] transition"
-            />
-            <button className="bg-[#6C63FF] hover:bg-[#5a52e0] text-white text-sm font-semibold px-6 py-3 rounded-full transition">
-              Join Waitlist
-            </button>
+          <div className="flex justify-center">
+            <WaitlistForm />
           </div>
+          {message && (
+            <p className={`mt-4 text-sm ${status === "success" ? "text-green-400" : "text-red-400"}`}>
+              {message}
+            </p>
+          )}
         </div>
       </section>
 
