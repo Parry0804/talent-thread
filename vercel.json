@@ -1,4 +1,7 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "nextjs",
+  "installCommand": "npm ci",
+  "buildCommand": "next build",
   "crons": [{ "path": "/api/cron/auto-approve", "schedule": "30 3 * * *" }]
 }
