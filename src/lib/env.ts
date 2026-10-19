@@ -3,10 +3,10 @@
 export const env = {
   supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL ?? "",
   supabaseAnonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "",
-  supabaseServiceKey: process.env.SUPABASE_SERVICE_ROLE_KEY ?? "",
-  anthropicKey: process.env.ANTHROPIC_API_KEY ?? "",
-  razorpayKeyId: process.env.RAZORPAY_KEY_ID ?? "",
-  razorpayKeySecret: process.env.RAZORPAY_KEY_SECRET ?? "",
+  supabaseServiceKey: (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY || "").trim(),
+  anthropicKey: (process.env.ANTHROPIC_API_KEY ?? "").trim(),
+  razorpayKeyId: (process.env.RAZORPAY_KEY_ID ?? "").trim(),
+  razorpayKeySecret: (process.env.RAZORPAY_KEY_SECRET ?? "").trim(),
   appUrl: process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000",
 };
 
