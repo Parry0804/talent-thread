@@ -38,9 +38,14 @@ export interface DesignerProfile {
   latest_score: number | null;
   latest_band: string | null;
   score_public: boolean;
+  kyc_verified: boolean;
+}
+
+/** Private payout details (owner and admins only). */
+export interface DesignerPayout {
+  id: string;
   payout_upi: string | null;
   pan_last4: string | null;
-  kyc_verified: boolean;
 }
 
 export interface ClientProfile {

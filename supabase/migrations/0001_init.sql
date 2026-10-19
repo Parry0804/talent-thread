@@ -52,9 +52,15 @@ create table designer_profiles (
   latest_score int check (latest_score is null or latest_score between 0 and 100),
   latest_band text,
   score_public boolean not null default false,
-  payout_upi text,
-  pan_last4 text,
   kyc_verified boolean not null default false,
+  updated_at timestamptz not null default now()
+);
+
+-- Payout details are private: kept apart from the public designer listing.
+create table designer_payout (
+  id uuid primary key references designer_profiles (id) on delete cascade,
+  payout_upi text,
+  pan_last4 text check (pan_last4 is null or pan_last4 ~ '^[0-9A-Z]{4}$'),
   updated_at timestamptz not null default now()
 );
 
@@ -415,6 +421,7 @@ create trigger client_guard before update on client_profiles
 -- disputes, AI reviews) go through server code using the service role.
 alter table profiles enable row level security;
 alter table designer_profiles enable row level security;
+alter table designer_payout enable row level security;
 alter table client_profiles enable row level security;
 alter table portfolio_items enable row level security;
 alter table ai_reviews enable row level security;
@@ -445,6 +452,9 @@ create policy "profiles admin" on profiles for all to authenticated using (is_ad
 create policy "designers read" on designer_profiles for select using (true);
 create policy "designers update self" on designer_profiles for update to authenticated
   using (id = auth.uid()) with check (id = auth.uid());
+
+create policy "payout own" on designer_payout for all to authenticated
+  using (id = auth.uid() or is_admin()) with check (id = auth.uid() or is_admin());
 
 create policy "clients read" on client_profiles for select to authenticated using (true);
 create policy "clients update self" on client_profiles for update to authenticated
