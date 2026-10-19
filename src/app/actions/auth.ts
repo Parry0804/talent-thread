@@ -1,10 +1,34 @@
 "use server";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { homeFor } from "@/lib/auth";
 import type { Role } from "@/lib/types";
 
 export type AuthState = { error?: string; notice?: string } | undefined;
+
+/** The address this request came in on, so email and Google links return to the same site. */
+async function siteUrl() {
+  if (process.env.NEXT_PUBLIC_APP_URL) return process.env.NEXT_PUBLIC_APP_URL.replace(/\/$/, "");
+  const h = await headers();
+  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";
+  const proto = h.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
+  return `${proto}://${host}`;
+}
+
+export async function signInWithGoogle(fd: FormData) {
+  const role: Role = fd.get("role") === "client" ? "client" : "designer";
+  const nextRaw = String(fd.get("next") ?? "");
+  const next = nextRaw.startsWith("/") && !nextRaw.startsWith("//") ? nextRaw : "/onboarding";
+  const supabase = await createClient();
+  const params = new URLSearchParams({ next, role });
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: { redirectTo: `${await siteUrl()}/auth/callback?${params}` },
+  });
+  if (error || !data.url) redirect("/login?error=google");
+  redirect(data.url);
+}
 
 export async function signOut() {
   const supabase = await createClient();
@@ -27,7 +51,7 @@ export async function signUp(_: AuthState, fd: FormData): Promise<AuthState> {
     password,
     options: {
       data: { full_name: fullName, role },
-      emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/auth/callback?next=/onboarding`,
+      emailRedirectTo: `${await siteUrl()}/auth/callback?next=/onboarding`,
     },
   });
   if (error) return { error: error.message };
@@ -52,7 +76,7 @@ export async function requestReset(_: AuthState, fd: FormData): Promise<AuthStat
   const email = String(fd.get("email") ?? "").trim();
   const supabase = await createClient();
   await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/auth/callback?next=/reset-password`,
+    redirectTo: `${await siteUrl()}/auth/callback?next=/reset-password`,
   });
   return { notice: "If that email has an account, a reset link is on its way." };
 }

@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { AuthForm } from "@/components/auth/auth-form";
-import { Field, Input, FormNotice } from "@/components/ui/form";
+import { Field, Input, FormError, FormNotice } from "@/components/ui/form";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { signIn } from "@/app/actions/auth";
+import { GoogleButton } from "@/components/auth/google-button";
 
 export const metadata = { title: "Log in" };
 
@@ -16,6 +17,9 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
         <p className="mt-1 text-ink-500">Log in to your Talent Thread account.</p>
       </div>
       {sp.reset && <FormNotice message="Password updated. Log in with your new password." />}
+      {sp.error === "google" && <FormError message="Google sign-in isn't available right now. Please use your email instead." />}
+      {sp.error === "link" && <FormError message="That sign-in link has expired or was already used. Please log in again." />}
+      <GoogleButton next={next || undefined} />
       <AuthForm action={signIn}>
         <input type="hidden" name="next" value={next} />
         <Field label="Email"><Input name="email" type="email" autoComplete="email" required /></Field>

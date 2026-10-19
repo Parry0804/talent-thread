@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createServiceClient } from "@/lib/supabase/server";
 
-// Email confirmation and password-reset links land here with a one-time code.
+// Email confirmation, password-reset and Google sign-in links land here with a one-time code.
 export async function GET(request: NextRequest) {
   const url = new URL(request.url);
   const code = url.searchParams.get("code");
@@ -9,8 +9,22 @@ export async function GET(request: NextRequest) {
   const next = nextParam.startsWith("/") && !nextParam.startsWith("//") ? nextParam : "/onboarding";
   if (code) {
     const supabase = await createClient();
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
-    if (!error) return NextResponse.redirect(new URL(next, url.origin));
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+    if (!error) {
+      // Google can't pass the designer/client choice at signup, so apply it here,
+      // only for accounts that haven't finished onboarding yet.
+      if (url.searchParams.get("role") === "client" && data.user) await makeClient(data.user.id);
+      return NextResponse.redirect(new URL(next, url.origin));
+    }
   }
   return NextResponse.redirect(new URL("/login?error=link", url.origin));
+}
+
+async function makeClient(userId: string) {
+  const db = createServiceClient();
+  const { data: profile } = await db.from("profiles").select("role, onboarded").eq("id", userId).single();
+  if (!profile || profile.onboarded || profile.role !== "designer") return;
+  await db.from("client_profiles").upsert({ id: userId, plan: "starter" }, { onConflict: "id", ignoreDuplicates: true });
+  await db.from("profiles").update({ role: "client" }).eq("id", userId);
+  await db.from("designer_profiles").delete().eq("id", userId);
 }
