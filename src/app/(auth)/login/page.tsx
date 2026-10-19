@@ -18,7 +18,11 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
       </div>
       {sp.reset && <FormNotice message="Password updated. Log in with your new password." />}
       {sp.error === "google" && <FormError message="Google sign-in isn't available right now. Please use your email instead." />}
-      {sp.error === "link" && <FormError message="That sign-in link has expired or was already used. Please log in again." />}
+      {sp.error === "link" && (
+        <FormError
+          message={`We couldn't finish signing you in. Please try again.${typeof sp.reason === "string" ? ` (Reason: ${sp.reason})` : ""}`}
+        />
+      )}
       <GoogleButton next={next || undefined} />
       <AuthForm action={signIn}>
         <input type="hidden" name="next" value={next} />
